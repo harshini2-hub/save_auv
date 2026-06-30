@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot name="srmauv" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================================================
+       Geometry derived from "AUV Vehicle full assembly v4.step":
+         bounding box ~ 0.587 x 0.601 x 0.435 m
+         center offset ~ (0, -0.156, -0.117) m from the STEP origin
+       STL is in millimetres -> Gazebo metres, so mesh_scale = 0.001.
+       ============================================================ -->
+  <xacro:property name="mesh_scale" value="0.001 0.001 0.001"/>
+  <xacro:property name="mesh_rpy"   value="0 0 0"/>
+  <xacro:property name="mass"       value="20.0"/>   <!-- kg, approx -->
+
+  <!-- Bounding-box dimensions (m) used for the simplified collision. -->
+  <xacro:property name="bx" value="0.587"/>
+  <xacro:property name="by" value="0.601"/>
+  <xacro:property name="bz" value="0.435"/>
+  <!-- Center of the bounding box, relative to the STEP origin (m). -->
+  <xacro:property name="cx" value="0.0"/>
+  <xacro:property name="cy" value="-0.156"/>
+  <xacro:property name="cz" value="-0.117"/>
+
+  <!-- Massless root link: robot_state_publisher/KDL rejects a root link that
+       carries inertia, so base_link hangs off this dummy via a fixed joint. -->
+  <link name="base_footprint"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <!-- Full detail mesh for appearance. -->
+    <visual>
+      <origin xyz="0 0 0" rpy="${mesh_rpy}"/>
+      <geometry>
+        <mesh filename="package://srmauv_description/meshes/srmauv_colored.dae"
+              scale="${mesh_scale}"/>
+      </geometry>
+    </visual>
+
+    <!-- Simple box collision: a 1M-facet mesh collision would cripple
+         physics. Swap to a closer hull later if you need fine contacts. -->
+    <collision>
+      <origin xyz="${cx} ${cy} ${cz}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${bx} ${by} ${bz}"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="${cx} ${cy} ${cz}" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <!-- Solid-box inertia for the bounding box (ixx etc. computed
+           from bx,by,bz and mass). Replace with CAD inertia if needed. -->
+      <inertia
+        ixx="${(1.0/12.0)*mass*(by*by + bz*bz)}" ixy="0.0" ixz="0.0"
+        iyy="${(1.0/12.0)*mass*(bx*bx + bz*bz)}" iyz="0.0"
+        izz="${(1.0/12.0)*mass*(bx*bx + by*by)}"/>
+    </inertial>
+  </link>
+
+  <!-- No <material> override here on purpose: that would replace the COLLADA
+       per-part colors with a flat color. The .dae carries its own materials. -->
+
+</robot>
