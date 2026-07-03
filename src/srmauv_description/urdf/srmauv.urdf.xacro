@@ -19,16 +19,6 @@
   <xacro:property name="cx" value="0.0"/>
   <xacro:property name="cy" value="-0.156"/>
   <xacro:property name="cz" value="-0.117"/>
-
-  <!-- Massless root link: robot_state_publisher/KDL rejects a root link that
-       carries inertia, so base_link hangs off this dummy via a fixed joint. -->
-  <link name="base_footprint"/>
-  <joint name="base_joint" type="fixed">
-    <parent link="base_footprint"/>
-    <child link="base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
   <link name="base_link">
     <!-- Full detail mesh for appearance. -->
     <visual>
@@ -62,5 +52,32 @@
 
   <!-- No <material> override here on purpose: that would replace the COLLADA
        per-part colors with a flat color. The .dae carries its own materials. -->
+
+  <!-- ================================================================
+       STEP 1: Underwater Dynamics
+       Buoyancy: volume=0.020 m^3 = mass(20kg)/water_density(1000)
+                 -> exact neutral buoyancy as the baseline.
+                 With drag now present, this won't fly away.
+       Drag: cd_linear=10, cd_quadratic=50 N/(m/s)^2, cd_angular=5
+             These are realistic starting values for a 0.6m AUV.
+       ================================================================ -->
+  <gazebo>
+    <plugin name="buoyancy_plugin" filename="libBuoyancyPlugin.so">
+      <fluid_density>1000</fluid_density>
+      <link name="base_link">
+        <center_of_volume>0.0 -0.156 -0.117</center_of_volume>
+        <volume>0.020</volume>
+      </link>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="hydrodynamic_plugin" filename="libhydrodynamic_plugin.so">
+      <cd_linear>10.0</cd_linear>
+      <cd_quadratic>50.0</cd_quadratic>
+      <cd_angular>5.0</cd_angular>
+      <fluid_level>2.5</fluid_level>
+    </plugin>
+  </gazebo>
 
 </robot>
